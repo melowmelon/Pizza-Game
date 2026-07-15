@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+    <title>Apology Pizza</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,650;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --crust: #e7b571;
+            --tomato: #c1432e;
+            --cheese: #f2c14e;
+            --basil: #5b7a4a;
+            --brick: #5a2f28;
+            --char: #2a1810;
+            --ivory: #faf3e6;
+            --ember: #ff8a3d;
+            --panel: rgba(24, 14, 10, 0.68);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #120a08;
+            overflow: hidden;
+            overscroll-behavior: none;
+            touch-action: none;
+            font-family: 'Inter', sans-serif;
+        }
+
+        #scene {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        #fadeOverlay {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .38s ease-in-out;
+            z-index: 5;
+        }
+
+        #ui {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 10;
+            padding: 16px 16px calc(16px + env(safe-area-inset-bottom)) 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+
+        #textBox {
+            width: 100%;
+            max-width: 520px;
+            background: var(--panel);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(250, 243, 230, 0.14);
+            border-radius: 16px;
+            padding: 14px 16px;
+            color: var(--ivory);
+            min-height: 30px;
+            box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4);
+            transition: all .25s ease;
+        }
+
+        #textBox.speech {
+            font-family: 'Fraunces', serif;
+            font-weight: 500;
+            font-size: 17px;
+            line-height: 1.45;
+            font-style: italic;
+        }
+
+        #textBox.caption {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 13px;
+            letter-spacing: .03em;
+            text-transform: uppercase;
+            text-align: center;
+            color: #f2d9b8;
+            padding: 10px 16px;
+        }
+
+        #textBox .cursor {
+            display: inline-block;
+            width: 7px;
+            height: 1em;
+            background: var(--ember);
+            margin-left: 2px;
+            vertical-align: text-bottom;
+            animation: blink .9s steps(1) infinite;
+        }
+
+        #captionSub {
+            display: none;
+            margin-top: 4px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 11px;
+            letter-spacing: .02em;
+            text-transform: none;
+            color: rgba(242, 217, 184, 0.6);
+        }
+
+        #textBox.caption #captionSub {
+            display: block;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+
+        #progressWrap {
+            width: 100%;
+            max-width: 520px;
+            height: 8px;
+            border-radius: 6px;
+            background: rgba(250, 243, 230, 0.15);
+            overflow: hidden;
+            display: none;
+        }
+
+        #progressBar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--ember), var(--cheese));
+            transition: width .12s linear;
+        }
+
+        #btnRow {
+            width: 100%;
+            max-width: 520px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            opacity: 0;
+            transform: translateY(8px);
+            pointer-events: none;
+            transition: opacity .35s ease, transform .35s ease;
+        }
+
+        #btnRow.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .actionBtn {
+            flex: 1 1 140px;
+            min-width: 130px;
+            max-width: 240px;
+            background: linear-gradient(160deg, #faf3e6, #efe2c8);
+            color: #2a1810;
+            border: none;
+            border-radius: 22px;
+            padding: 12px 16px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+            transition: transform .12s ease;
+        }
+
+        .actionBtn:active {
+            transform: scale(0.95);
+        }
+
+        .actionBtn.alt {
+            background: linear-gradient(160deg, #f0a86a, #d9843e);
+            color: #2a1810;
+        }
+
+        .actionBtn.selected {
+            outline: 3px solid var(--ember);
+            outline-offset: 2px;
+        }
+
+        .actionBtn .punName {
+            display: block;
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .actionBtn .realName {
+            display: block;
+            font-size: 10.5px;
+            font-weight: 500;
+            opacity: 0.65;
+            margin-top: 1px;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+
+        #topHint {
+            position: fixed;
+            top: calc(12px + env(safe-area-inset-top));
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: rgba(250, 243, 230, 0.5);
+            font-family: 'Inter';
+            font-size: 10px;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            z-index: 10;
+            pointer-events: none;
+            transition: opacity 1s ease;
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="scene"></canvas>
+    <div id="fadeOverlay"></div>
+    <div id="topHint">tap &middot; drag &middot; swirl your thumb</div>
+
+    <div id="ui">
+        <div id="textBox" class="speech"><span id="textSpan"></span><span class="cursor" id="cursor"></span>
+            <div id="captionSub"></div>
+        </div>
+        <div id="progressWrap">
+            <div id="progressBar"></div>
+        </div>
+        <div id="btnRow"></div>
+    </div>
+
+    <script>
+        /* ============================================================
+           CANVAS SETUP
+        ============================================================ */
+        const canvas = document.getElementById('scene');
+        const ctx = canvas.getContext('2d');
+        let W, H, DPR;
+        function resize() {
+            DPR = Math.min(window.devicePixelRatio || 1, 2);
+            W = window.innerWidth; H = window.innerHeight;
+            canvas.width = W * DPR; canvas.height = H * DPR;
+            canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+            ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        const BASE_W = 390;
+        function baseScale() { return Math.min(Math.max(W / BASE_W, 0.82), 1.7); }
+
+        /* ============================================================
+           WORLD LAYOUT (all coords in BASE_W units)
+        ============================================================ */
+        const CHAR = { x: 250, y: 180 };
+        const OVEN = { x: 95, y: 300, r: 95 };
+        const SHELF = { x: 345, y: 200 };
+        const COUNTER_Y = 470;
+        const PAN = { x: 195, y: 555, r: 120 };
+        const SPOT = { x: 65, y: 555 }; // where raw ingredients sit before selection
+        const OVEN_SCALE = 0.52; // how small the pizza gets once it's resting inside the oven
+        const OVEN_REST = { x: OVEN.x, y: OVEN.y + 12 }; // resting spot inside the oven mouth
+
+        /* ============================================================
+           CAMERA
+        ============================================================ */
+        const CAM_FACE = { x: 250, y: 180, zoom: 1.4 };
+        const CAM_TABLE = { x: 195, y: 555, zoom: 1.22 };
+        const CAM_OVEN = { x: 150, y: 400, zoom: 1.12 };
+        let cam = { x: CAM_FACE.x, y: CAM_FACE.y, zoom: CAM_FACE.zoom };
+        let camTarget = CAM_FACE;
+        function setCam(target) { camTarget = target; }
+
+        function screenToWorld(px, py) {
+            const s = cam.zoom * baseScale();
+            return { x: (px - W / 2) / s + cam.x, y: (py - H / 2) / s + cam.y };
+        }
+
+        /* ============================================================
+           TIME
+        ============================================================ */
+        let t = 0, lastTime = performance.now();
+
+        /* ============================================================
+           PARTICLES: embers / steam
+        ============================================================ */
+        const embers = [];
+        function spawnEmber(steam) {
+            embers.push({
+                x: OVEN.x + (Math.random() - 0.5) * 60,
+                y: OVEN.y + 20 + Math.random() * 10,
+                vy: -(18 + Math.random() * 20),
+                vx: (Math.random() - 0.5) * 8,
+                life: 0, maxLife: 1.4 + Math.random() * 1.2,
+                size: steam ? 5 + Math.random() * 6 : 1.5 + Math.random() * 2.2,
+                steam: !!steam
+            });
+        }
+        let emberSpawnAccum = 0;
+        function updateEmbers(dt, rate) {
+            emberSpawnAccum += dt * rate;
+            while (emberSpawnAccum > 1) { spawnEmber(false); emberSpawnAccum--; }
+            for (let i = embers.length - 1; i >= 0; i--) {
+                const e = embers[i];
+                e.life += dt;
+                e.x += e.vx * dt; e.y += e.vy * dt; e.vy -= dt * 4;
+                if (e.life > e.maxLife) embers.splice(i, 1);
+            }
+        }
+        function drawEmbers() {
+            for (const e of embers) {
+                const f = 1 - (e.life / e.maxLife);
+                ctx.beginPath();
+                ctx.fillStyle = e.steam ? `rgba(250,243,230,${0.25 * f})` : `rgba(255,${120 + Math.random() * 60 | 0},60,${0.85 * f})`;
+                ctx.arc(e.x, e.y, e.size * (e.steam ? (1.6 - f * 0.6) : 1), 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        /* ============================================================
+           BACKGROUND
+        ============================================================ */
+        function drawBackground() {
+            const g = ctx.createLinearGradient(0, 0, 0, 700);
+            g.addColorStop(0, '#3a1f18');
+            g.addColorStop(0.55, '#2a1510');
+            g.addColorStop(1, '#150b08');
+            ctx.fillStyle = g;
+            ctx.fillRect(-100, -100, BASE_W + 200, 900);
+
+            // brick rows
+            ctx.save();
+            ctx.globalAlpha = 0.35;
+            for (let row = 0; row < 10; row++) {
+                const y = row * 44 - 10;
+                const offset = (row % 2) * 24;
+                for (let bx = -40; bx < BASE_W + 40; bx += 48) {
+                    ctx.strokeStyle = '#1a0d09';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(bx + offset, y, 44, 40);
+                }
+            }
+            ctx.restore();
+
+            // hanging string lights
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(-20, 20); ctx.quadraticCurveTo(BASE_W / 2, 70 + Math.sin(t * 0.6) * 6, BASE_W + 20, 15); ctx.stroke();
+            for (let i = 0; i < 7; i++) {
+                const f = i / 6;
+                const lx = -20 + f * (BASE_W + 40);
+                const ly = 20 + Math.sin(f * Math.PI) * 50 + Math.sin(t * 0.6 + f * 4) * 3;
+                const glow = ctx.createRadialGradient(lx, ly, 0, lx, ly, 16);
+                glow.addColorStop(0, 'rgba(255,210,140,0.9)');
+                glow.addColorStop(1, 'rgba(255,210,140,0)');
+                ctx.fillStyle = glow; ctx.fillRect(lx - 16, ly - 16, 32, 32);
+                ctx.fillStyle = '#ffdca0'; ctx.beginPath(); ctx.arc(lx, ly, 3, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.restore();
+
+            // shelf with jars
+            ctx.save();
+            ctx.fillStyle = '#3a2418';
+            ctx.fillRect(SHELF.x - 55, SHELF.y + 30, 110, 8);
+            ctx.fillRect(SHELF.x - 55, SHELF.y - 10, 110, 8);
+            const jarColors = ['#c1432e', '#5b7a4a', '#e7b571'];
+            for (let i = 0; i < 3; i++) {
+                ctx.fillStyle = jarColors[i];
+                ctx.globalAlpha = 0.85;
+                ctx.beginPath();
+                ctx.roundRect(SHELF.x - 45 + i * 36, SHELF.y - 32, 22, 22, 4);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            ctx.restore();
+        }
+
+        function drawOven(baking) {
+            ctx.save();
+            ctx.translate(OVEN.x, OVEN.y);
+            // outer brick arch
+            ctx.fillStyle = '#4a2a20';
+            ctx.beginPath();
+            ctx.arc(0, 10, OVEN.r, Math.PI, 0);
+            ctx.lineTo(OVEN.r, 90); ctx.lineTo(-OVEN.r, 90);
+            ctx.closePath(); ctx.fill();
+            // inner glow mouth
+            const flicker = 0.75 + Math.sin(t * 7) * 0.08 + Math.sin(t * 13.3) * 0.05;
+            const innerR = OVEN.r * 0.62 * (baking ? 1.08 : 1);
+            const g = ctx.createRadialGradient(0, 20, 4, 0, 20, innerR);
+            g.addColorStop(0, baking ? `rgba(255,225,150,${0.95 * flicker})` : `rgba(255,150,60,${0.8 * flicker})`);
+            g.addColorStop(0.5, `rgba(255,110,40,${0.55 * flicker})`);
+            g.addColorStop(1, 'rgba(120,30,10,0)');
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(0, 20, innerR, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#1a0b06';
+            ctx.beginPath();
+            ctx.arc(0, 18, OVEN.r * 0.6, Math.PI, 0);
+            ctx.lineTo(OVEN.r * 0.6, 60); ctx.lineTo(-OVEN.r * 0.6, 60);
+            ctx.closePath();
+            ctx.globalCompositeOperation = 'destination-over';
+            ctx.fill();
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.restore();
+        }
+
+        /* drawn AFTER the pizza while it's inside the oven — sells depth by
+           shadowing the far ceiling of the arch and the near floor threshold
+           so the pizza reads as sitting behind the opening, not on top of it */
+        function drawOvenForeground(alpha) {
+            alpha = alpha === undefined ? 1 : alpha;
+            ctx.save();
+            ctx.translate(OVEN.x, OVEN.y);
+            ctx.globalAlpha = alpha;
+
+            const ceil = ctx.createLinearGradient(0, -36, 0, 14);
+            ceil.addColorStop(0, 'rgba(8,3,2,0.9)');
+            ceil.addColorStop(1, 'rgba(8,3,2,0)');
+            ctx.fillStyle = ceil;
+            ctx.beginPath();
+            ctx.arc(0, 18, OVEN.r * 0.6, Math.PI, 0);
+            ctx.closePath();
+            ctx.fill();
+
+            const floor = ctx.createLinearGradient(0, 32, 0, 72);
+            floor.addColorStop(0, 'rgba(10,4,2,0)');
+            floor.addColorStop(1, 'rgba(10,4,2,0.92)');
+            ctx.fillStyle = floor;
+            ctx.beginPath();
+            ctx.moveTo(-OVEN.r * 0.6, 32);
+            ctx.quadraticCurveTo(0, 50, OVEN.r * 0.6, 32);
+            ctx.lineTo(OVEN.r * 0.6, 78);
+            ctx.lineTo(-OVEN.r * 0.6, 78);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        /* ============================================================
+           CHARACTER (chef) with talking mouth
+        ============================================================ */
+        let talking = false, mouthPhase = 0;
+        function drawCharacter() {
+            ctx.save();
+            ctx.translate(CHAR.x, CHAR.y);
+
+            // torso behind counter
+            ctx.fillStyle = '#faf3e6';
+            ctx.beginPath();
+            ctx.moveTo(-58, 70); ctx.quadraticCurveTo(-62, 130, -56, 220);
+            ctx.lineTo(56, 220); ctx.quadraticCurveTo(62, 130, 58, 70);
+            ctx.quadraticCurveTo(0, 50, -58, 70);
+            ctx.closePath(); ctx.fill();
+            // apron strap
+            ctx.strokeStyle = '#c1432e'; ctx.lineWidth = 8;
+            ctx.beginPath(); ctx.moveTo(-20, 60); ctx.lineTo(0, 110); ctx.lineTo(20, 60); ctx.stroke();
+
+            // neck
+            ctx.fillStyle = '#e3b48a';
+            ctx.fillRect(-14, 44, 28, 26);
+
+            // head
+            ctx.beginPath(); ctx.arc(0, 0, 42, 0, Math.PI * 2);
+            ctx.fillStyle = '#e3b48a'; ctx.fill();
+
+            // ears
+            ctx.beginPath(); ctx.arc(-40, 4, 7, 0, Math.PI * 2); ctx.arc(40, 4, 7, 0, Math.PI * 2);
+            ctx.fill();
+
+            // chef hat
+            ctx.fillStyle = '#faf3e6';
+            ctx.beginPath();
+            ctx.moveTo(-32, -30);
+            ctx.bezierCurveTo(-40, -70, -10, -78, 0, -58);
+            ctx.bezierCurveTo(10, -78, 40, -70, 32, -30);
+            ctx.closePath(); ctx.fill();
+            ctx.fillRect(-34, -32, 68, 14);
+
+            // brows (a little worried / earnest)
+            ctx.strokeStyle = '#2a1810'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(-22, -10); ctx.lineTo(-8, -6); ctx.moveTo(22, -10); ctx.lineTo(8, -6); ctx.stroke();
+
+            // eyes
+            ctx.fillStyle = '#2a1810';
+            ctx.beginPath(); ctx.arc(-15, 0, 3.4, 0, Math.PI * 2); ctx.arc(15, 0, 3.4, 0, Math.PI * 2); ctx.fill();
+
+            // blush
+            ctx.fillStyle = 'rgba(193,67,46,0.28)';
+            ctx.beginPath(); ctx.arc(-26, 14, 7, 0, Math.PI * 2); ctx.arc(26, 14, 7, 0, Math.PI * 2); ctx.fill();
+
+            // mouth (talking animation)
+            ctx.fillStyle = '#7a3226';
+            const openAmt = talking ? (0.5 + 0.5 * Math.sin(mouthPhase)) : 0;
+            ctx.beginPath();
+            ctx.ellipse(0, 20, 9, 3 + openAmt * 7, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawCounter() {
+            ctx.save();
+            ctx.fillStyle = '#6b4028';
+            ctx.fillRect(-100, COUNTER_Y, BASE_W + 200, 14);
+            ctx.fillStyle = '#4a2c1a';
+            ctx.fillRect(-100, COUNTER_Y + 14, BASE_W + 200, 260);
+            ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 1;
+            for (let x = -90; x < BASE_W + 100; x += 26) { ctx.beginPath(); ctx.moveTo(x, COUNTER_Y + 14); ctx.lineTo(x, COUNTER_Y + 274); ctx.stroke(); }
+            ctx.restore();
+        }
+
+        function drawPanObj() {
+            ctx.save();
+            ctx.translate(PAN.x, PAN.y);
+            ctx.fillStyle = '#8a8a8a';
+            ctx.beginPath(); ctx.ellipse(0, 0, PAN.r, PAN.r * 0.62, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#5a5a5a'; ctx.lineWidth = 6;
+            ctx.beginPath(); ctx.ellipse(0, 0, PAN.r - 3, PAN.r * 0.62 - 3, 0, 0, Math.PI * 2); ctx.stroke();
+            ctx.restore();
+        }
+
+        /* blobby organic circle helper (dough / bases) */
+        function blobPath(cx, cy, r, irregularity, seedT) {
+            ctx.beginPath();
+            const pts = 16;
+            for (let i = 0; i <= pts; i++) {
+                const a = (i / pts) * Math.PI * 2;
+                const wob = 1 + Math.sin(a * 3 + seedT * 1.3) * 0.06 * irregularity + Math.sin(a * 5 + seedT * 0.7) * 0.04 * irregularity;
+                const rr = r * wob;
+                const x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr * 0.9;
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+        }
+
+        /* ============================================================
+           GAME STATE
+        ============================================================ */
+        const state = {
+            phase: 'intro',
+            doughSel: false, doughAnim: 0, doughRadius: 34, doughRadiusVel: 0,
+            doughRotAccum: 0, doughDragging: false, doughLastAngle: null, doughDone: false,
+            sauceSel: false, sauceAnim: 0, saucePts: [], saucePathLen: 0, sauceDone: false, sauceDragging: false, sauceLast: null,
+            cheeseSel: false, cheeseAnim: 0, cheeseType: null, cheeseColor: '#f6d980', cheeseSpeckle: null,
+            cheesePts: [], cheesePathLen: 0, cheeseDone: false, cheeseDragging: false, cheeseLast: null,
+            toppingType: 'pepperoni', toppings: [], toppingsNeeded: 6,
+            ovenOpen: false, bakeProgress: 0, baked: false, pizzaSlide: 0, landBounce: 1,
+            flightStart: null, flightEnd: null, flightCtrl: null
+        };
+        const DOUGH_MIN = 34, DOUGH_MAX = 108;
+        const SAUCE_TARGET_LEN = 900;
+        const CHEESE_TARGET_LEN = 900;
+
+        /* pun name + actual name, kept together so the joke stays legible */
+        const NAMES = {
+            dough: { pun: 'Sorry-Dough', real: 'dough' }
+        };
+
+        const SAUCE = {
+            id: 'marinerror', pun: 'Marin-error', real: 'marinara sauce',
+            line: "The perfect base for when you\u2019ve made a terrible mistake."
+        };
+
+        const CHEESES = [
+            {
+                id: 'mourn', pun: 'Mourn-zarella', real: 'mozzarella', color: '#f6d980', speckle: null,
+                line: "Made with extra bacteria that helps with mourning procedures"
+            },
+            {
+                id: 'parm', pun: 'Parme-sad', real: 'parmesan', color: '#f2e6b8', speckle: null,
+                line: "Best when sprinkled generously over your regrets like bad texting decisions."
+            },
+            {
+                id: 'blue', pun: 'Blue Cheese', real: 'blue cheese', color: '#e6e2d6', speckle: '#5b7aa8',
+                line: "A sad blue kind of cheese."
+            }
+        ];
+        function getCheese(id) { return CHEESES.find(c => c.id === id); }
+
+        const TOPPINGS = [
+            {
+                id: 'pepperoni', pun: 'Pepper-only', real: 'pepperoni',
+                line: "When you feel like the loneliest meat in the deli drawer."
+            },
+            {
+                id: 'sausage', pun: 'Saus-sadge', real: 'sausage',
+                line: "A sad sausage for when you\u2019re having a rough day."
+            },
+            {
+                id: 'jalapeno', pun: 'Jala-pain-os', real: 'jalape\u00f1os',
+                line: "A sad jalapeno in pain \u2014 always adds flavor."
+            },
+            {
+                id: 'mushroom', pun: 'Mush-glooms', real: 'mushrooms',
+                line: "Fungi that helps you to sit in the dark and think about your mistakes."
+            }
+        ];
+        function getTopping(id) { return TOPPINGS.find(x => x.id === id); }
+
+        function ingPos(placed, animT) {
+            // lerp from SPOT to PAN center as animT goes 0->1
+            return { x: SPOT.x + (PAN.x - SPOT.x) * animT, y: SPOT.y + (PAN.y - SPOT.y) * animT };
+        }
+
+        /* ============================================================
+           DRAW: pizza construction (dough, sauce, cheese, toppings)
+        ============================================================ */
+        function drawDough() {
+            if (!state.doughSel) return;
+            const pos = state.doughAnim < 1 ? ingPos(false, state.doughAnim) : { x: PAN.x, y: PAN.y };
+            const r = state.doughAnim < 1 ? DOUGH_MIN : state.doughRadius;
+            const irregularity = state.doughAnim < 1 ? 1 : Math.max(0, 1 - (state.doughRadius - DOUGH_MIN) / (DOUGH_MAX - DOUGH_MIN) * 1.1);
+            ctx.save();
+            ctx.fillStyle = '#e7c98a';
+            blobPath(pos.x, pos.y, r, irregularity, t);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(150,100,40,0.35)'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawSauce() {
+            if (!state.sauceSel) return;
+            if (state.sauceAnim < 1) {
+                const pos = ingPos(false, state.sauceAnim);
+                ctx.save();
+                ctx.fillStyle = '#b8392a';
+                ctx.beginPath(); ctx.ellipse(pos.x, pos.y, 26, 30, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+                return;
+            }
+            if (state.saucePts.length < 2) return;
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(PAN.x, PAN.y, Math.min(state.doughRadius - 6, DOUGH_MAX - 6), 0, Math.PI * 2);
+            ctx.clip();
+            ctx.strokeStyle = 'rgba(177,53,34,0.88)';
+            ctx.lineWidth = 22; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(state.saucePts[0].x, state.saucePts[0].y);
+            for (const p of state.saucePts) ctx.lineTo(p.x, p.y);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawCheese() {
+            if (!state.cheeseSel) return;
+            const col = state.cheeseColor || '#f6d980';
+            if (state.cheeseAnim < 1) {
+                const pos = ingPos(false, state.cheeseAnim);
+                ctx.save();
+                ctx.fillStyle = col;
+                ctx.fillRect(pos.x - 20, pos.y - 16, 40, 32);
+                ctx.restore();
+                return;
+            }
+            if (state.cheesePts.length < 1) return;
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(PAN.x, PAN.y, Math.min(state.doughRadius - 8, DOUGH_MAX - 8), 0, Math.PI * 2);
+            ctx.clip();
+            for (const p of state.cheesePts) {
+                for (const j of p.jitter) {
+                    ctx.fillStyle = col;
+                    ctx.beginPath();
+                    ctx.arc(p.x + j.dx, p.y + j.dy, j.r, 0, Math.PI * 2);
+                    ctx.fill();
+                    if (j.speck && state.cheeseSpeckle) {
+                        ctx.fillStyle = state.cheeseSpeckle;
+                        ctx.beginPath();
+                        ctx.arc(p.x + j.dx, p.y + j.dy, j.r * 0.55, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+            ctx.restore();
+        }
+
+        function drawToppings() {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(PAN.x, PAN.y, Math.min(state.doughRadius - 4, DOUGH_MAX - 4), 0, Math.PI * 2);
+            ctx.clip();
+            for (const tp of state.toppings) {
+                const age = t - tp.spawnT;
+                const s = age < 0.3 ? easeOutBack(age / 0.3) : 1;
+                ctx.save();
+                ctx.translate(tp.x, tp.y); ctx.scale(s, s);
+                if (tp.type === 'pepperoni') {
+                    ctx.fillStyle = '#a83224';
+                    ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#7a1f16';
+                    for (let k = 0; k < 5; k++) {
+                        const a = k * 1.256; ctx.beginPath(); ctx.arc(Math.cos(a) * 5, Math.sin(a) * 5, 1.4, 0, Math.PI * 2); ctx.fill();
+                    }
+                } else if (tp.type === 'sausage') {
+                    ctx.fillStyle = '#8a5a3a';
+                    ctx.beginPath(); ctx.ellipse(0, 0, 11, 9, 0, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = 'rgba(60,35,20,0.5)'; ctx.lineWidth = 1;
+                    ctx.beginPath(); ctx.ellipse(0, 0, 11, 9, 0, 0, Math.PI * 2); ctx.stroke();
+                    ctx.fillStyle = 'rgba(60,35,20,0.45)';
+                    for (let k = 0; k < 4; k++) {
+                        const a = k * 1.57 + 0.4; ctx.beginPath(); ctx.arc(Math.cos(a) * 4.5, Math.sin(a) * 3.5, 1.6, 0, Math.PI * 2); ctx.fill();
+                    }
+                } else if (tp.type === 'jalapeno') {
+                    ctx.fillStyle = '#7aa85a';
+                    ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#3f6b34';
+                    ctx.lineWidth = 3.5; ctx.strokeStyle = '#3f6b34';
+                    ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.stroke();
+                    ctx.fillStyle = '#e8dfa8';
+                    for (let k = 0; k < 5; k++) {
+                        const a = k * 1.256;
+                        ctx.save(); ctx.translate(Math.cos(a) * 4, Math.sin(a) * 4); ctx.rotate(a);
+                        ctx.beginPath(); ctx.ellipse(0, 0, 2.4, 1.2, 0, 0, Math.PI * 2); ctx.fill();
+                        ctx.restore();
+                    }
+                } else if (tp.type === 'mushroom') {
+                    ctx.fillStyle = '#d8cfc0';
+                    ctx.beginPath(); ctx.ellipse(0, 0, 11, 9, 0, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = 'rgba(150,135,110,0.55)'; ctx.lineWidth = 1;
+                    for (let k = 0; k < 7; k++) {
+                        const a = (k / 7) * Math.PI * 2;
+                        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * 10, Math.sin(a) * 8); ctx.stroke();
+                    }
+                    ctx.strokeStyle = 'rgba(120,105,85,0.6)'; ctx.lineWidth = 1.5;
+                    ctx.beginPath(); ctx.ellipse(0, 0, 11, 9, 0, 0, Math.PI * 2); ctx.stroke();
+                }
+                ctx.restore();
+            }
+            ctx.restore();
+        }
+        function easeOutBack(x) { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); }
+
+        /* floating pun labels under freshly placed toppings */
+        function drawToppingLabels(offX, offY) {
+            ctx.save();
+            ctx.translate(offX, offY);
+            ctx.textAlign = 'center';
+            for (const tp of state.toppings) {
+                const age = t - tp.spawnT;
+                if (age > 1.9) continue;
+                const alpha = age > 1.4 ? Math.max(0, 1 - (age - 1.4) / 0.5) : Math.min(1, age / 0.3);
+                const rise = Math.max(0, 1 - age / 0.3) * 6;
+                const n = getTopping(tp.type);
+                const ly = tp.y + 25 + rise;
+
+                ctx.font = '700 11px Inter, sans-serif';
+                ctx.lineWidth = 3.5; ctx.strokeStyle = `rgba(20,10,5,${0.85 * alpha})`;
+                ctx.strokeText(n.pun, tp.x, ly);
+                ctx.fillStyle = `rgba(250,243,230,${alpha})`;
+                ctx.fillText(n.pun, tp.x, ly);
+
+                ctx.font = '500 9px Inter, sans-serif';
+                ctx.lineWidth = 3; ctx.strokeStyle = `rgba(20,10,5,${0.75 * alpha})`;
+                ctx.strokeText('(' + n.real + ')', tp.x, ly + 11);
+                ctx.fillStyle = `rgba(242,217,184,${0.85 * alpha})`;
+                ctx.fillText('(' + n.real + ')', tp.x, ly + 11);
+            }
+            ctx.restore();
+        }
+
+        /* pulsing hint ring around a selectable object */
+        function hintRing(x, y, r) {
+            ctx.save();
+            const p = 0.5 + 0.5 * Math.sin(t * 3.2);
+            ctx.strokeStyle = `rgba(255,200,120,${0.35 + 0.35 * p})`;
+            ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(x, y, r + 6 + p * 4, 0, Math.PI * 2); ctx.stroke();
+            ctx.restore();
+        }
+
+        /* ============================================================
+           AUDIO / SFX  (WebAudio synth — no external files needed)
+           Musical "blip" synth: soft sine/triangle tones tuned to a pentatonic
+           scale, quick pitch-swoop + gentle envelope on each note — the same
+           basic recipe games like Animal Crossing use for talking chirps and
+           UI sounds, rather than percussive noise hits (which read as "drums").
+           Everything routes through one master gain for easy overall trimming.
+        ============================================================ */
+        let actx = null;
+        let masterGain = null;
+        const MASTER_VOL = 0.55;
+        function ensureAudio() {
+            if (!actx) {
+                try {
+                    actx = new (window.AudioContext || window.webkitAudioContext)();
+                    masterGain = actx.createGain();
+                    masterGain.gain.value = MASTER_VOL;
+                    masterGain.connect(actx.destination);
+                } catch (e) { return; }
+            }
+            if (actx && actx.state === 'suspended') actx.resume();
+        }
+        function jitter(v, amt) { return v * (1 + (Math.random() * 2 - 1) * amt); }
+
+        /* A warm major-pentatonic scale (low->high) — picking notes from here for
+           every sound effect keeps everything harmonically related, so nothing
+           ever clashes no matter what order sounds overlap in. */
+        const SCALE = [196.00, 220.00, 246.94, 293.66, 329.63, 392.00, 440.00, 493.88, 587.33, 659.25, 783.99];
+        function note(i) { return SCALE[((i % SCALE.length) + SCALE.length) % SCALE.length]; }
+
+        /* core "blip": a short tone with a quick pitch swoop into place and a soft
+           attack/decay envelope. bend>1 swoops DOWN into the note (good for
+           placing/landing/thumps), bend<1 swoops UP into it (good for
+           picking-up / popping sounds). */
+        function playBlip({ freq = 440, dur = 0.09, vol = 0.1, type = 'sine', bend = 1 } = {}) {
+            ensureAudio();
+            if (!actx) return;
+            const now = actx.currentTime;
+            const osc = actx.createOscillator();
+            const gain = actx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(Math.max(freq * bend, 20), now);
+            osc.frequency.exponentialRampToValueAtTime(Math.max(freq, 20), now + dur * 0.55);
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.linearRampToValueAtTime(vol, now + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+            osc.connect(gain); gain.connect(masterGain);
+            osc.start(now); osc.stop(now + dur + 0.02);
+        }
+
+        /* --- discrete one-shot sounds — all musical blips, no noise hits --- */
+        function sfxClick() { playBlip({ freq: note(7), dur: 0.05, vol: 0.09, type: 'sine', bend: 0.82 }); }
+        function sfxTapIngredient() { playBlip({ freq: note(3), dur: jitter(0.1, 0.1), vol: 0.11, type: 'triangle', bend: 0.72 }); }
+        function sfxToppingPlace() { playBlip({ freq: note(6 + Math.floor(Math.random() * 3)), dur: 0.07, vol: 0.1, type: 'sine', bend: 0.78 }); }
+        function sfxOvenTap() { playBlip({ freq: note(0), dur: 0.17, vol: 0.1, type: 'sine', bend: 1.6 }); }
+        function sfxLand() {
+            playBlip({ freq: note(0), dur: 0.19, vol: 0.1, type: 'sine', bend: 1.7 });
+            setTimeout(() => playBlip({ freq: note(2), dur: 0.09, vol: 0.06, type: 'triangle', bend: 0.85 }), 70);
+        }
+        function sfxDone() {
+            const seq = [4, 6, 9];
+            seq.forEach((n, idx) => setTimeout(() => playBlip({ freq: note(n), dur: 0.16, vol: 0.11, type: 'sine', bend: 0.9 }), idx * 110));
+        }
+
+        /* soft "mumble" chirp played on letters as the chef's dialogue types out —
+           a short triangle-wave blip that hops between scale notes, the classic
+           talking-animal-game trick for making text feel spoken rather than typed */
+        function sfxMumble() {
+            const n = 2 + Math.floor(Math.random() * 5);
+            playBlip({ freq: note(n), dur: jitter(0.065, 0.15), vol: jitter(0.08, 0.2), type: 'triangle', bend: 0.88 + Math.random() * 0.2 });
+        }
+
+        /* --- motion-triggered "dab" blips for spreading dough / painting sauce /
+           sprinkling cheese — a soft musical tick every little bit of movement
+           instead of one continuous drone. Each ingredient gets its own register
+           and timbre so they stay distinguishable. --- */
+        function sfxDoughDab() { playBlip({ freq: note(1 + Math.floor(Math.random() * 2)), dur: jitter(0.075, 0.2), vol: jitter(0.075, 0.2), type: 'triangle', bend: 0.9 }); }
+        function sfxSauceDab() { playBlip({ freq: note(4 + Math.floor(Math.random() * 2)), dur: jitter(0.055, 0.2), vol: jitter(0.065, 0.25), type: 'sine', bend: 0.85 }); }
+        function sfxCheeseDab() { playBlip({ freq: note(8 + Math.floor(Math.random() * 3)), dur: jitter(0.045, 0.25), vol: jitter(0.06, 0.3), type: 'sine', bend: 0.8 }); }
+
+        /* distance accumulators — reset in restartGame() */
+        const spreadAccum = { dough: 0, sauce: 0, cheese: 0 };
+        const SPREAD_THRESHOLD = { dough: 22, sauce: 20, cheese: 16 };
+        function tickSpreadSound(kind, delta) {
+            spreadAccum[kind] = (spreadAccum[kind] || 0) + delta;
+            if (spreadAccum[kind] >= SPREAD_THRESHOLD[kind]) {
+                spreadAccum[kind] = 0;
+                if (kind === 'dough') sfxDoughDab();
+                else if (kind === 'sauce') sfxSauceDab();
+                else if (kind === 'cheese') sfxCheeseDab();
+            }
+        }
+
+        /* ============================================================
+           POINTER INPUT
+        ============================================================ */
+        canvas.addEventListener('pointerdown', e => {
+            const w = screenToWorld(e.clientX, e.clientY);
+            handleDown(w, e);
+        });
+        canvas.addEventListener('pointermove', e => {
+            const w = screenToWorld(e.clientX, e.clientY);
+            handleMove(w);
+        });
+        window.addEventListener('pointerup', () => handleUp());
+        window.addEventListener('pointercancel', () => handleUp());
+
+        function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+
+        function handleDown(w) {
+            if (state.phase === 'doughSelect') {
+                if (dist(w, SPOT) < 50) { sfxTapIngredient(); selectDough(); }
+                return;
+            }
+            if (state.phase === 'doughSpread') {
+                if (dist(w, PAN) < state.doughRadius + 30) {
+                    state.doughDragging = true;
+                    state.doughLastAngle = Math.atan2(w.y - PAN.y, w.x - PAN.x);
+                }
+                return;
+            }
+            if (state.phase === 'sauceSelect') {
+                if (dist(w, SPOT) < 50) { sfxTapIngredient(); sauceSelectedFlow(); }
+                return;
+            }
+            if (state.phase === 'saucePaint') {
+                if (dist(w, PAN) < state.doughRadius) {
+                    state.sauceDragging = true;
+                    state.saucePts.push({ x: w.x, y: w.y });
+                    state.sauceLast = w;
+                }
+                return;
+            }
+            if (state.phase === 'cheesePaint') {
+                if (dist(w, PAN) < state.doughRadius) {
+                    state.cheeseDragging = true;
+                    addCheesePt(w);
+                    state.cheeseLast = w;
+                }
+                return;
+            }
+            if (state.phase === 'toppingPlace') {
+                if (dist(w, PAN) < state.doughRadius - 10) {
+                    placeTopping(w);
+                }
+                return;
+            }
+            if (state.phase === 'ovenTap') {
+                if (dist(w, OVEN) < OVEN.r + 20) { sfxOvenTap(); startBake(); }
+                return;
+            }
+        }
+        function handleMove(w) {
+            if (state.doughDragging && state.phase === 'doughSpread') {
+                const a = Math.atan2(w.y - PAN.y, w.x - PAN.x);
+                let d = a - state.doughLastAngle;
+                while (d > Math.PI) d -= Math.PI * 2;
+                while (d < -Math.PI) d += Math.PI * 2;
+                state.doughRotAccum += Math.abs(d);
+                state.doughLastAngle = a;
+                tickSpreadSound('dough', Math.abs(d) * state.doughRadius);
+                updateDoughProgress();
+            }
+            if (state.sauceDragging && state.phase === 'saucePaint') {
+                if (dist(w, PAN) < DOUGH_MAX + 10 && dist(state.sauceLast, w) > 4) {
+                    const moved = dist(state.sauceLast, w);
+                    state.saucePathLen += moved;
+                    state.saucePts.push({ x: w.x, y: w.y });
+                    state.sauceLast = w;
+                    tickSpreadSound('sauce', moved);
+                    updateProgressUI(Math.min(1, state.saucePathLen / SAUCE_TARGET_LEN));
+                    if (state.saucePathLen >= SAUCE_TARGET_LEN && !state.sauceDone) { state.sauceDone = true; setTimeout(() => advancePhase('cheeseSay'), 400); }
+                }
+            }
+            if (state.cheeseDragging && state.phase === 'cheesePaint') {
+                if (dist(w, PAN) < DOUGH_MAX + 10 && dist(state.cheeseLast, w) > 7) {
+                    const moved = dist(state.cheeseLast, w);
+                    state.cheesePathLen += moved;
+                    addCheesePt(w);
+                    state.cheeseLast = w;
+                    tickSpreadSound('cheese', moved);
+                    updateProgressUI(Math.min(1, state.cheesePathLen / CHEESE_TARGET_LEN));
+                    if (state.cheesePathLen >= CHEESE_TARGET_LEN && !state.cheeseDone) { state.cheeseDone = true; setTimeout(() => advancePhase('toppingSay'), 400); }
+                }
+            }
+        }
+        function handleUp() {
+            state.doughDragging = false;
+            state.sauceDragging = false;
+            state.cheeseDragging = false;
+        }
+        function addCheesePt(w) {
+            const jitter = [];
+            for (let i = 0; i < 4; i++) jitter.push({
+                dx: (Math.random() - 0.5) * 26, dy: (Math.random() - 0.5) * 20, r: 1.6 + Math.random() * 2.2,
+                speck: !!(state.cheeseSpeckle && Math.random() < 0.35)
+            });
+            state.cheesePts.push({ x: w.x, y: w.y, jitter });
+        }
+
+        function updateDoughProgress() {
+            const progress = Math.min(1, state.doughRotAccum / (Math.PI * 2 * 2.5));
+            const target = DOUGH_MIN + (DOUGH_MAX - DOUGH_MIN) * progress;
+            state.doughRadius = target; // spring smoothing handled in update loop toward this
+            updateProgressUI(progress);
+            if (progress >= 1 && !state.doughDone) {
+                state.doughDone = true;
+                setTimeout(() => advancePhase('doughDoneSay'), 350);
+            }
+        }
+
+        function placeTopping(w) {
+            for (const tp of state.toppings) { if (dist(tp, w) < 22) return; }
+            state.toppings.push({ x: w.x, y: w.y, type: state.toppingType, spawnT: t });
+            sfxToppingPlace();
+            updateProgressUI(state.toppings.length / state.toppingsNeeded);
+            if (state.toppings.length >= state.toppingsNeeded) {
+                setTimeout(() => advancePhase('ovenSay'), 400);
+            }
+        }
+
+        /* ============================================================
+           SELECTION ACTIONS
+        ============================================================ */
+        function selectDough() {
+            state.doughSel = true;
+            animateVal(v => state.doughAnim = v, 0, 1, 560, () => { advancePhase('doughSpread'); }, easeInOutCubic);
+        }
+
+        /* generic helper: fade into a transient "reaction" phase where the chef
+           speaks a line at the counter, then continues on to nextPhaseId */
+        function fadeTo(phaseId, callback) {
+            fadeOverlay.style.opacity = '0.4';
+            setTimeout(() => {
+                state.phase = phaseId;
+                fadeOverlay.style.opacity = '0';
+                if (callback) callback();
+            }, 380);
+        }
+        function speakReaction(line, nextPhaseId) {
+            btnRow.classList.remove('show'); btnRow.innerHTML = '';
+            progressWrap.style.display = 'none';
+            textBox.className = 'speech';
+            typewrite(line, () => {
+                const pause = Math.max(300, line.length * 10);
+                setTimeout(() => advancePhase(nextPhaseId), pause);
+            });
+        }
+
+        function sauceSelectedFlow() {
+            if (state.sauceSel) return;
+            state.sauceSel = true;
+            animateVal(v => state.sauceAnim = v, 0, 1, 500, () => {
+                fadeTo('sauceLineSay', () => speakReaction(SAUCE.line, 'saucePaint'));
+            }, easeInOutCubic);
+        }
+
+        function chooseCheese(c) {
+            if (state.cheeseSel) return;
+            state.cheeseType = c.id;
+            state.cheeseColor = c.color;
+            state.cheeseSpeckle = c.speckle || null;
+            state.cheeseSel = true;
+            btnRow.classList.remove('show');
+            animateVal(v => state.cheeseAnim = v, 0, 1, 500, () => {
+                fadeTo('cheeseLineSay', () => speakReaction(c.line, 'cheesePaint'));
+            }, easeInOutCubic);
+        }
+
+        function easeOutCubic(x) { return 1 - Math.pow(1 - x, 3); }
+        function easeInOutCubic(x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; }
+
+        function animateVal(setter, from, to, ms, done, easeFn) {
+            easeFn = easeFn || easeOutCubic;
+            const start = performance.now();
+            function step(now) {
+                const f = Math.min(1, (now - start) / ms);
+                setter(from + (to - from) * easeFn(f));
+                if (f < 1) requestAnimationFrame(step); else if (done) done();
+            }
+            requestAnimationFrame(step);
+        }
+
+        /* dust / flour puff burst, used on landing */
+        const dust = [];
+        function spawnDustBurst(x, y) {
+            for (let i = 0; i < 16; i++) {
+                const a = Math.random() * Math.PI * 2;
+                const spd = 26 + Math.random() * 55;
+                dust.push({ x, y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd * 0.55 - 18, life: 0, maxLife: 0.45 + Math.random() * 0.3, size: 2 + Math.random() * 3 });
+            }
+        }
+        function updateDust(dt) {
+            for (let i = dust.length - 1; i >= 0; i--) {
+                const d = dust[i];
+                d.life += dt; d.x += d.vx * dt; d.y += d.vy * dt; d.vy += dt * 70; d.vx *= 0.95;
+                if (d.life > d.maxLife) dust.splice(i, 1);
+            }
+        }
+        function drawDust() {
+            for (const d of dust) {
+                const f = 1 - d.life / d.maxLife;
+                ctx.beginPath();
+                ctx.fillStyle = `rgba(250,240,225,${0.55 * f})`;
+                ctx.arc(d.x, d.y, d.size * (1.3 - f * 0.3), 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        /* camera shake */
+        let shakeTime = 0, shakeMag = 0;
+        function shake(mag, dur) { shakeTime = dur; shakeMag = mag; }
+
+        /* curved toss from the pan into the oven, with squash-and-stretch on landing.
+           Tilt is eased back to fully flat well before the pizza reaches the oven
+           mouth, so it slides in level rather than at an angle. */
+        function startBake() {
+            advancePhase('ovenFlying');
+            state.ovenOpen = true;
+            state.landBounce = 0;
+            const start = { x: PAN.x, y: PAN.y };
+            const end = { x: OVEN_REST.x, y: OVEN_REST.y };
+            state.flightStart = start;
+            state.flightEnd = end;
+            state.flightCtrl = { x: (start.x + end.x) / 2, y: Math.min(start.y, end.y) - 105 };
+
+            animateVal(v => { state.pizzaSlide = v; }, 0, 1, 900, () => {
+                spawnDustBurst(OVEN.x, OVEN.y + 42);
+                shake(5, 0.3);
+                sfxLand();
+                animateVal(v => { state.landBounce = v; }, 0, 1, 420, () => {
+                    advancePhase('ovenBaking');
+                    bakeCountdown();
+                }, easeOutCubic);
+            }, easeInOutCubic);
+        }
+
+        /* draws the pizza mid-flight (and during the landing squash) with sauce/cheese/toppings intact */
+        function drawFlyingPizza() {
+            const f = state.pizzaSlide;
+            const omf = 1 - f;
+            const bx = omf * omf * state.flightStart.x + 2 * omf * f * state.flightCtrl.x + f * f * state.flightEnd.x;
+            const by = omf * omf * state.flightStart.y + 2 * omf * f * state.flightCtrl.y + f * f * state.flightEnd.y;
+            // tilt only during the early/mid part of the arc, flattening out well
+            // before arrival so it enters the oven flat rather than at an angle
+            const tiltWindow = 0.62;
+            const tiltEnvelope = f < tiltWindow ? Math.sin((f / tiltWindow) * Math.PI) : 0;
+            const rot = tiltEnvelope * 0.28;
+            const baseScl = 1 - f * (1 - OVEN_SCALE);
+            let sx = baseScl, sy = baseScl;
+            if (f >= 1) {
+                const lb = state.landBounce;
+                sx = baseScl * (1 + 0.14 * Math.sin(lb * Math.PI));
+                sy = baseScl * (1 - 0.22 * Math.sin(lb * Math.PI));
+            }
+            ctx.save();
+            ctx.translate(bx, by);
+            ctx.rotate(rot);
+            ctx.scale(sx, sy);
+            ctx.translate(-PAN.x, -PAN.y);
+            blobPath(PAN.x, PAN.y, state.doughRadius, 0.05, t);
+            ctx.fillStyle = '#e7c98a'; ctx.fill();
+            drawSauce(); drawCheese(); drawToppings();
+            ctx.restore();
+
+            // as it nears the mouth of the oven, fade in the depth shadow so it
+            // looks like it's sliding behind the opening rather than sitting on it
+            if (f > 0.55) {
+                drawOvenForeground(Math.min(1, (f - 0.55) / 0.35));
+            }
+        }
+
+        function bakeCountdown() {
+            const dur = 4600;
+            const start = performance.now();
+            function step(now) {
+                const f = Math.min(1, (now - start) / dur);
+                state.bakeProgress = f;
+                updateProgressUI(f);
+                if (f < 1) requestAnimationFrame(step);
+                else { state.baked = true; sfxDone(); setTimeout(() => advancePhase('ovenDone'), 350); }
+            }
+            requestAnimationFrame(step);
+        }
+
+        /* ============================================================
+           TEXT / PHASE SCRIPT
+        ============================================================ */
+        const script = {
+            intro: { cam: CAM_FACE, mode: 'speech', text: "Today we're making an apology pizza with me, Merin.", buttons: [{ label: "Let's get started", next: 'doughSay' }] },
+            doughSay: { cam: CAM_FACE, mode: 'speech', text: "Looks like we've only got one sorry-dough left...", next: 'doughSelect' },
+            doughSelect: { cam: CAM_TABLE, mode: 'caption', text: "Tap the Sorry-Dough", sub: "(" + NAMES.dough.real + ")", hint: true },
+            doughSpread: { cam: CAM_TABLE, mode: 'caption', text: "Swirl your thumb — spread it into a circle", progress: true },
+            doughDoneSay: { cam: CAM_FACE, mode: 'speech', text: "Not bad. A little rough around the edges. btw a circle has many edges.", next: 'sauceSay' },
+            sauceSay: { cam: CAM_FACE, mode: 'speech', text: "Sauce time. All we've got is the Marin-error sauce ", next: 'sauceSelect' },
+            sauceSelect: { cam: CAM_TABLE, mode: 'caption', text: "Tap the Marin-error", sub: "(" + SAUCE.real + ")", hint: true },
+            saucePaint: { cam: CAM_TABLE, mode: 'caption', text: "Smear it around", progress: true },
+            cheeseSay: { cam: CAM_FACE, mode: 'speech', text: "What kind of cheese feels right today?", next: 'cheeseChoose' },
+            cheeseChoose: { cam: CAM_TABLE, mode: 'caption', text: "Choose your cheese", cheeseButtons: true },
+            cheesePaint: { cam: CAM_TABLE, mode: 'caption', text: "Sprinkle it around", progress: true },
+            toppingSay: { cam: CAM_FACE, mode: 'speech', text: "Let's add a couple toppings.", next: 'toppingPlace' },
+            toppingPlace: { cam: CAM_TABLE, mode: 'caption', text: "Tap the pizza to place toppings", progress: true, toppingButtons: true },
+            ovenSay: { cam: CAM_FACE, mode: 'speech', text: "Into the oven it goes.", next: 'ovenTap' },
+            ovenTap: { cam: CAM_OVEN, mode: 'caption', text: "Tap the oven", hint: true },
+            ovenFlying: { cam: CAM_OVEN, mode: 'caption', text: "In it goes...", hint: false },
+            ovenBaking: { cam: CAM_OVEN, mode: 'caption', text: "Baking...", progress: true },
+            ovenDone: { cam: CAM_OVEN, mode: 'caption', text: "Fresh out of the oven.", auto: 900, next: 'finalSay' },
+            finalSay: { cam: CAM_FACE, mode: 'speech', text: "Fresh, a little late, but made with love. I'm sorry for making you think I have gf - Eat up little one.", buttons: [{ label: "Make another", next: '__restart' }] }
+        };
+
+        const textSpan = document.getElementById('textSpan');
+        const cursor = document.getElementById('cursor');
+        const textBox = document.getElementById('textBox');
+        const progressWrap = document.getElementById('progressWrap');
+        const progressBar = document.getElementById('progressBar');
+        const btnRow = document.getElementById('btnRow');
+        const fadeOverlay = document.getElementById('fadeOverlay');
+        const captionSub = document.getElementById('captionSub');
+
+        let typingInterval = null;
+        let mumbleCounter = 0;
+        function typewrite(text, onDone) {
+            clearInterval(typingInterval);
+            textSpan.textContent = ''; cursor.style.display = 'inline-block';
+            talking = true; mouthPhase = 0; mumbleCounter = 0;
+            let i = 0;
+            typingInterval = setInterval(() => {
+                const ch = text[i];
+                textSpan.textContent += ch; i++;
+                mouthPhase += 1.2;
+                if (ch && /[a-zA-Z0-9]/.test(ch)) {
+                    mumbleCounter++;
+                    if (mumbleCounter % 2 === 0) sfxMumble();
+                }
+                if (i >= text.length) {
+                    clearInterval(typingInterval);
+                    cursor.style.display = 'none';
+                    talking = false;
+                    if (onDone) onDone();
+                }
+            }, 38);
+        }
+
+        function updateProgressUI(p) {
+            progressBar.style.width = (Math.min(1, Math.max(0, p)) * 100) + '%';
+        }
+
+        function advancePhase(id) {
+            fadeOverlay.style.opacity = '0.4';
+            setTimeout(() => {
+                state.phase = id;
+                fadeOverlay.style.opacity = '0';
+                enterPhase(id);
+            }, 380);
+        }
+
+        function enterPhase(id) {
+            const s = script[id];
+            setCam(s.cam);
+            btnRow.classList.remove('show'); btnRow.innerHTML = '';
+            progressWrap.style.display = s.progress ? 'block' : 'none';
+            if (s.progress) updateProgressUI(0);
+
+            if (s.mode === 'speech') {
+                textBox.className = 'speech';
+                typewrite(s.text, () => {
+                    if (s.buttons) {
+                        renderButtons(s.buttons);
+                    } else if (s.next) {
+                        const pause = Math.max(300, s.text.length * 10);
+                        setTimeout(() => advancePhase(s.next), pause);
+                    }
+                });
+            } else {
+                textBox.className = 'caption';
+                textSpan.textContent = s.text;
+                cursor.style.display = 'none';
+                captionSub.textContent = s.sub || '';
+                if (s.toppingButtons) renderToppingButtons();
+                if (s.cheeseButtons) renderCheeseButtons();
+                if (s.auto) setTimeout(() => advancePhase(s.next), s.auto);
+            }
+        }
+
+        function renderButtons(buttons) {
+            btnRow.innerHTML = '';
+            for (const b of buttons) {
+                const el = document.createElement('button');
+                el.className = 'actionBtn';
+                el.textContent = b.label;
+                el.onclick = () => {
+                    sfxClick();
+                    if (b.next === '__restart') { restartGame(); return; }
+                    advancePhase(b.next);
+                };
+                btnRow.appendChild(el);
+            }
+            btnRow.classList.add('show');
+        }
+
+        function renderCheeseButtons() {
+            btnRow.innerHTML = '';
+            for (const c of CHEESES) {
+                const el = document.createElement('button');
+                el.className = 'actionBtn';
+                el.innerHTML = `<span class="punName">${c.pun}</span><span class="realName">(${c.real})</span>`;
+                el.onclick = () => { sfxClick(); chooseCheese(c); };
+                btnRow.appendChild(el);
+            }
+            btnRow.classList.add('show');
+        }
+
+        let toppingIntroduced = {};
+        function renderToppingButtons() {
+            btnRow.innerHTML = '';
+            for (const tp of TOPPINGS) {
+                const el = document.createElement('button');
+                el.className = 'actionBtn' + (state.toppingType === tp.id ? ' selected' : '');
+                el.innerHTML = `<span class="punName">${tp.pun}</span><span class="realName">(${tp.real})</span>`;
+                el.onclick = () => { sfxClick(); selectToppingType(tp); };
+                btnRow.appendChild(el);
+            }
+            btnRow.classList.add('show');
+        }
+
+        function selectToppingType(tp) {
+            state.toppingType = tp.id;
+            renderToppingButtons();
+            if (!toppingIntroduced[tp.id]) {
+                toppingIntroduced[tp.id] = true;
+                showToppingToast(tp.line);
+            }
+        }
+
+        /* brief chef reaction shown inline over the current caption, without
+           changing camera or interrupting placement — then restores the caption */
+        function showToppingToast(text) {
+            if (state.phase !== 'toppingPlace') return;
+            textBox.className = 'speech';
+            typewrite(text, () => {
+                const pause = Math.max(700, text.length * 18);
+                setTimeout(() => {
+                    if (state.phase === 'toppingPlace') {
+                        textBox.className = 'caption';
+                        textSpan.textContent = script.toppingPlace.text;
+                        cursor.style.display = 'none';
+                        captionSub.textContent = '';
+                    }
+                }, pause);
+            });
+        }
+
+        function restartGame() {
+            toppingIntroduced = {};
+            spreadAccum.dough = 0; spreadAccum.sauce = 0; spreadAccum.cheese = 0;
+            Object.assign(state, {
+                phase: 'intro', doughSel: false, doughAnim: 0, doughRadius: 34, doughRadiusVel: 0,
+                doughRotAccum: 0, doughDragging: false, doughLastAngle: null, doughDone: false,
+                sauceSel: false, sauceAnim: 0, saucePts: [], saucePathLen: 0, sauceDone: false, sauceDragging: false, sauceLast: null,
+                cheeseSel: false, cheeseAnim: 0, cheeseType: null, cheeseColor: '#f6d980', cheeseSpeckle: null,
+                cheesePts: [], cheesePathLen: 0, cheeseDone: false, cheeseDragging: false, cheeseLast: null,
+                toppingType: 'pepperoni', toppings: [], toppingsNeeded: 6,
+                ovenOpen: false, bakeProgress: 0, baked: false, pizzaSlide: 0, landBounce: 1,
+                flightStart: null, flightEnd: null, flightCtrl: null
+            });
+            advancePhase('intro');
+        }
+
+        /* ============================================================
+           MAIN LOOP
+        ============================================================ */
+        function drawWorld() {
+            drawBackground();
+            drawOven(state.phase === 'ovenBaking' && !state.baked);
+            drawCounter();
+            drawCharacter();
+            drawPanObj();
+
+            // idle raw ingredient at spot, with hint ring while awaiting selection
+            if (state.phase === 'doughSelect') {
+                blobPath(SPOT.x, SPOT.y, 32, 1, t); ctx.fillStyle = '#e7c98a'; ctx.fill();
+                ctx.strokeStyle = 'rgba(150,100,40,0.4)'; ctx.stroke();
+                hintRing(SPOT.x, SPOT.y, 34);
+            }
+            if (state.phase === 'sauceSelect') {
+                ctx.beginPath(); ctx.ellipse(SPOT.x, SPOT.y, 24, 28, 0, 0, Math.PI * 2);
+                ctx.fillStyle = '#b8392a'; ctx.fill();
+                hintRing(SPOT.x, SPOT.y, 30);
+            }
+
+            const flying = state.ovenOpen && (state.pizzaSlide < 1 || state.landBounce < 1);
+
+            if (!flying && !state.ovenOpen) {
+                drawDough();
+                drawSauce();
+                drawCheese();
+                drawToppings();
+                drawToppingLabels(0, 0);
+            }
+
+            if (state.phase === 'ovenTap') { hintRing(OVEN.x, OVEN.y + 20, OVEN.r * 0.55); }
+
+            if (flying) {
+                drawFlyingPizza();
+            } else if (state.phase === 'ovenBaking' || state.phase === 'ovenDone' || state.phase === 'finalSay') {
+                // baked pizza inside/out of oven
+                const inOven = state.phase === 'ovenBaking';
+                const bakeCol = state.baked ? '#d98a3a' : '#e7c98a';
+                const scl = inOven ? OVEN_SCALE : 1;
+                const px = inOven ? OVEN_REST.x : PAN.x;
+                const py = inOven ? OVEN_REST.y : PAN.y;
+                ctx.save();
+                ctx.translate(px, py);
+                ctx.scale(scl, scl);
+                ctx.translate(-PAN.x, -PAN.y);
+                blobPath(PAN.x, PAN.y, state.doughRadius, 0.04, t);
+                ctx.fillStyle = bakeCol; ctx.fill();
+                ctx.save();
+                blobPath(PAN.x, PAN.y, state.doughRadius, 0.04, t);
+                ctx.clip();
+                drawSauce(); drawCheese(); drawToppings();
+                ctx.restore();
+                ctx.restore();
+                if (inOven) drawOvenForeground(1);
+            }
+
+            updateEmbers(1 / 60 * (state.phase === 'ovenBaking' ? 4 : 1), state.phase === 'ovenBaking' ? 26 : 6);
+            drawEmbers();
+            updateDust(dtGlobal);
+            drawDust();
+        }
+
+        let dtGlobal = 0;
+        function frame(now) {
+            const dt = Math.min(0.045, (now - lastTime) / 1000);
+            lastTime = now; t += dt; dtGlobal = dt;
+
+            const k = 1 - Math.exp(-dt * 4.8);
+            cam.x += (camTarget.x - cam.x) * k;
+            cam.y += (camTarget.y - cam.y) * k;
+            cam.zoom += (camTarget.zoom - cam.zoom) * k;
+
+            let shakeX = 0, shakeY = 0;
+            if (shakeTime > 0) {
+                shakeTime -= dt;
+                const decay = Math.max(0, shakeTime) / 0.3;
+                shakeX = (Math.random() - 0.5) * shakeMag * decay;
+                shakeY = (Math.random() - 0.5) * shakeMag * 0.6 * decay;
+            }
+
+            ctx.clearRect(0, 0, W, H);
+            ctx.save();
+            ctx.translate(W / 2, H / 2);
+            const s = cam.zoom * baseScale();
+            ctx.scale(s, s);
+            ctx.translate(-cam.x + shakeX, -cam.y + shakeY);
+            drawWorld();
+            ctx.restore();
+
+            requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+        setTimeout(() => { document.getElementById('topHint').style.opacity = '0'; }, 3800);
+
+        /* boot */
+        enterPhase('intro');
+    </script>
+</body>
+
+</html>
